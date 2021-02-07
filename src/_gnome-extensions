@@ -1,0 +1,147 @@
+#compdef gnome-extensions
+
+_gnome-extensions() {
+local -a commands
+commands=(
+  'help:Print help'
+  'version:Print version'
+  'enable:Enable extension'
+  'disable:Disable extension'
+  'reset:Reset extension'
+  'uninstall:Uninstall extension'
+  'list:List extensions'
+  'info:Show extension info'
+  'show:Show extension info'
+  'prefs:Open extension preferences'
+  'create:Create extension'
+  'pack:Package extension'
+  'install:Install extension bundle'
+)
+
+_arguments -C \
+  '1:cmd:->cmds' \
+  '*:: :->args' \
+  && ret=0
+
+local exts
+case "$state" in
+  (cmds)
+    _describe -t commands 'command' commands && ret=0
+    ;;
+  (args)
+    case $line[1] in
+      (help)
+        _describe -t commands 'Help on ...' commands && ret=0
+        ;;
+
+      (version)
+        _message 'no more arguments' && ret=0
+        ;;
+
+      (enable)
+        exts=($(_list_gnome_extensions --disabled))
+        _arguments \
+          ":Extension to enable:(($exts))" \
+          '(-q --quiet)'{-q,--quiet}'[Do not print error messages]' \
+          && ret=0
+        ;;
+
+      (disable|reset)
+        exts=($(_list_gnome_extensions --enabled))
+        _arguments \
+          ":Extension to disable:(($exts))" \
+          '(-q --quiet)'{-q,--quiet}'[Do not print error messages]' \
+          && ret=0
+        ;;
+
+      (info|show)
+        exts=($(_list_gnome_extensions))
+        _arguments \
+          ":Show info about:(($exts))" \
+          && ret=0
+        ;;
+
+      (list)
+        _arguments \
+          '(--user)--user[Show user-installed extensions]' \
+          '(--system)--system[Show system-installed extensions]' \
+          '(--enabled)--enabled[Show enabled extensions]' \
+          '(--disabled)--disabled[Show disabled extensions]' \
+          '(--prefs)--prefs[Show extensions with preferences]' \
+          '(--updates)--updates[Show extensions with updates]' \
+          '(-d --details)'{-d,--details}'[Print extension details]' \
+          '(-q --quiet)'{-q,--quiet}'[Do not print error messages]' \
+          && ret=0
+        ;;
+
+      (prefs)
+        exts=($(_list_gnome_extensions --prefs --enabled))
+        _arguments \
+          ":Show preferences of:(($exts))" \
+          && ret=0
+                                                                                                                                                                                                                                                        ;;
+                                                                                                                                                                                                                                                      (create)
+        _arguments \
+          '--name=:user-visible name in the extension metadata:' \
+          '--description=:description (for the extension metadata):' \
+          '--uuid=:UUID:' \
+          '--template=:TEMPLATE:' \
+          '(-i --interactive)'{-i,--interactive}'[Prompt for extension metadata that has not been provided]' \
+          && ret=0
+        ;;
+
+      (pack)
+        _arguments \
+          '*--extra-source=:Additional source file:_files' \
+          '*--schema=:GSettings schema:_files -g "*.gschema.xml"' \
+          '--podir=:Directory with translations:_files -/' \
+          '--gettext-:gettext domain:' \
+          '(-f --force)'{-f,--force}'[Overwrite an existing pack]' \
+          '(-o --out-dir)'{-o,--out-dir=}':Output directory:_files -/' \
+          ':Source directory:_files -/' \
+          && ret=0
+        ;;
+
+      (install)
+        _arguments \
+          '--force[Override an existing extension]' \
+          ':Bundle Pack:_files -g "*.shell-extension.zip"' \
+          && ret=0
+        ;;
+
+      (uninstall)
+        exts=($(_list_gnome_extensions))
+        _arguments \
+          ":Extension to uninstall:(($exts))" \
+          && ret=0
+        ;;
+
+        esac
+    esac
+
+    return 0
+  }
+
+
+(( $+functions[_list_gnome_extensions] )) ||
+  _list_gnome_extensions() {
+    local item
+    local l
+    item=
+    gnome-extensions list -d $@ | while read l
+  do
+    if [[ -z "$l" ]]
+    then
+      item=
+    elif [[ -z "$item" ]]
+    then
+      item="$l"
+    elif [[ "${l/:*/}" = "Name" ]]
+    then
+      print "${item}\\:'${l#Name: }'"
+    fi
+  done
+
+}
+
+# vim: ft=zsh sw=2 ts=2 et
